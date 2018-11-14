@@ -1,0 +1,110 @@
+<HTML>
+<!--
+  version: 03
+  last updated: 2015/09/04
+  for dashboard(s): Diag_VM_CPU
+  purpose: Explain what the key metrics are for diagnosing CPU problems for a VM.
+  name this file (when pasting into a file in Manage Metric Config): Diag_VM_CPU_guide.html
+-->
+<font color="black">
+<b>Usage: </b>Find and select a VM in Choose VM. Key metrics for that VM will be graphed in Key VM CPU Metrics. You can also <b>look at Alerts</b> on the selected VM, and  you can graph any other metrics you like using the Metric Picker and looking in the Your Selected Metrics widget. In Metric Picker, toggle on or off the "Show property metrics" button to switch between properties and regular metrics. Property-type metrics (like number of vCPUs installed) will show in the Property List widget. <br>
+<br>
+<b>[vm]CPU|Workload(%):</b> Tells if the VM is undersized. % of the VM capacity which was demanded (not necessarily delivered). Tells whether the VM is undersized for CPU. If this is near or over 100%–and <i>if</i> there is a problem–the VM might benefit from having more vCPU(s). If much less than 100%, adding vCPUs probably won't help because the VM is not even trying to use what it already has.<br>
+<br>
+<b>[vm]CPU|CPU Contention(%):</b> Tells if the VM is underserved. pCPU demand that was denied, averaged per-vCPU. Measures time the VM wanted to use pCPU but had to wait. If this is high, it indicates a likely performance problem; investigate why the host is not delivering what is being demanded. Includes Co-Stop, Ready, HyperThreading sharing, and CPU power-saving dynamic-scaling voltage effects. Higher values are worse e.g. > 5%. Overly high values may be due to host CPU power-saving settings. If high, look at Co-Stop and Ready. If this average is low, it is still possible that only one vCPU out of many has high Co-Stop or Ready.<br>
+<br>
+<b>[vm]CPU|Co-Stop(%):</b> vCPU Co-Stop averaged per-vCPU. At vCPU level, this is % of time a busy vCPU demanded but was denied a pCPU until the less-busy vCPUs could be caught up to it. ESXi prevents guest OS crashes by insisting that no one vCPU run <i>too</i> much more than others in the VM. Higher values on one vCPU than others may indicate that the VM would run better with <i>fewer</i> vCPUs because unnecessary vCPUs are a drag on the busy one(s).  Look at Co-Stop for each vCPU.<br>
+Note: Average (not sum) of co-stop per vCPU. If high, this is a problem. If low, it could still be a problem on one vCPU out of many. See per vCPU. If all vCPUs have high Co-Stop, the root problem may be similar to things which can cause high Ready time. If Co-Stop is wildly uneven, consider removing vCPUs to reduce vCPU-catchup overhead.<br>
+<br>
+<b> [vm]CPU|Ready(%):</b> vCPU Ready NOT averaged-per-vCPU. At vCPU level, this is % of time a vCPU demanded but was denied a pCPU (excluding Co-Stop). Higher values indicate starvation hurting VM performance. Values < 5% <i>on a single vCPU</i> are usually not a problem, and Ready(%) is rarely zero. <br>
+Note: Sum (not average) of ready per vCPU (e.g. 16% could be 1% for each of 16 vCPUs), so if high, look at per-vCPU stats. If low, per-vCPU must also be low and is not a problem.<br>
+Most common causes: host is overloaded, or slow storage is wasting host pCPUs in WAIT (for IO) state.<br>
+<br>
+<b>Convert stats in (ms) to (%)</b> by dividing by 20,000 ms (the time interval) and x by 100%. E.g. [vm]CPU|2|Co-Stop(ms) of 5,000 would be 25% Co-Stop for vCPU #2. This is true even though vROps shows one data point every 5 minutes (it is the 20-second average for that 5-min period).<br>
+	[vm]CPU|Co-Stop(ms) is SUM of ms co-stop from each vCPU<br>
+	[vm]CPU|Ready(ms) is SUM of ms ready from each vCPU<br>
+	[vm]CPU|Co-Stop(%) is % of Co-Stop AVERAGED-per-vCPU<br>
+	[vm]CPU|Ready(%) is SUM of all vCPUs Ready(ms) converted to %<br>
+<br>
+<b>See also</b>: <br>
+per-vCPU Co-Stop and Ready (see dashboards CPU_CoStop_perVCPU and CPU_Ready_perVCPU, or, in Metric Picker, specify the number of the vCPU); <br>
+[vm]CPU|Usage(%) (actually-delivered CPU power); <br>
+[host]CPU|Workload(%); <br>
+[vm]Virtual Disk|Total Latency(ms) (see Diag_VM_vDisk dashboard).<br>
+</HTML>
+
+
+<HTML>
+<!--
+  version: 02
+  last updated: 2015/09/04
+  for dashboard(s): Diag_VM_Mem
+  purpose: Explain what the key metrics are for diagnosing Memory problems for a VM.
+  name this file (when pasting into a file in Manage Metric Config): Diag_VM_Mem_guide.html
+
+-->
+
+<b>Usage: </b> Find and select a VM in Choose VM. Key metrics for that VM will be graphed in Key VM Memory Metrics. You can also <b>look at Alerts</b> on the selected VM, and  you can graph any other metrics you like using the Metric Picker and looking in the Your Selected Metrics widget. In Metric Picker, toggle on or off the "Show property metrics" button to switch between properties and regular metrics. Property-type metrics (like number of vCPUs installed) will show in the Property List widget. <br>
+<br>
+<b>[vm]Memory|Workload(%):</b> Tells if VM is undersized. Fraction of VM's memory which has been used recently e.g. in last 15 minutes. Typically less than Usage, which is pRAM allocated to the VM but not necessarily recently used.<br>
+<br>
+
+<b>[vm]Memory|Contention(%):</b> Tells if VM is underserved. % time spent waiting for data which was expected to be in pRAM already. Mostly Swap-in from VM's .vswp file and time to decompress data the host compressed. Non-zero values indicate likely performance problem. Indicates host had too little free pRAM.<br>
+<br>
+
+<b>[vm]Memory|Swapped(KB):</b> How much data is sitting in the VM's .vswp file. The host puts data into .vswp when the host is low on free pRAM; the guest OS does not realize this. Once data goes into the .vswp file, it stays there until either the guest OS requests it (when it will be paged-in on-demand, and so Swapped will decrease) or until the VM is powered off and the contents of .vswp are discarded.<br>
+Poor performance does not happen just because there is Swapped data; poor performance happens when that data is being paged in on demand. So, look for <b>decreases</b> in the Swapped value as times of poor performance.<br>
+<br>
+
+<b>[vm]Memory|Compressed(KB):</b> KB of memory which the host has transparently compressed. This does not indicate a current performance problem. But a <b>decrease</b> in Compressed means that the guest OS is requesting the data and has to wait for the host to decompress it (similar to changes in Swapped). <br>
+<br>
+
+<b>[vm]Memory|Balloon(%)</b>: Percent of the VM's memory which has been displaced by the balloon driver. This does NOT always indicate that this VM is having poor performance, only that the host was running low on free pRAM. In many cases, this ballooning is able to successfully avoid a performance problem for any VMs on the host by freeing up pRAM which is not actively being used. Performance problems are more likely when a large % of the VM's memory is ballooned, because the OS is less likely to meet all that demand from already-unused vRAM.<br>
+<br>
+
+<b>[vm]Memory|Demand Over Limit(KB):</b> Demand(KB) - Limit(KB). How much RAM was recently used (same as Workload, but in KB) minus the imposed Limit on the VM. Normally this is negative (i.e. Demand < Limit). If this is a positive number, the VM will be having performance problems, because the host is having to juggle around pRAM mappings to back the vRAM while keeping total pRAM used at any moment < the Limit. In some circumstances, this number could be negative yet the VM still has performance problems.<br>
+<br>
+
+<b>[vm]Memory|Effective limit(KB):</b> How much pRAM the host will allow to be used for the VM. The VM's guest OS is unaware of this.<br>
+<br>
+
+<b>See also:</b> Property:[vm]Configuration|Hardware|Memory(KB): memory installed in the VM; Property:[vm]Memory|VM Limit(KB); Paging/Swapping metrics from within the guest OS.
+For Properties instead of regular metrics, in the Metric Picker, click "Show property metrics", select the item, and see it listed in the Property List widget. 
+
+
+</HTML>
+
+
+<HTML>
+<!--
+  version: 02
+  last updated: 2015/09/04
+  for dashboard(s): Diag_VM_vDisk
+  purpose: Explain what the key metrics are for diagnosing virtual disk problems for a VM.
+  name this file (when pasting into a file in Manage Metric Config): Diag_VM_vDisk_guide.html
+
+-->
+
+<b>Usage: </b>Find and select a VM in Choose VM. Key metrics for that VM will be graphed in Key VM vDisk Metrics. You can also <b>look at Alerts</b> on the selected VM, and  you can graph any other metrics you like using the Metric Picker and looking in the Your Selected Metrics widget. In Metric Picker, toggle on or off the "Show property metrics" button to switch between properties and regular metrics. Property-type metrics (like number of vCPUs installed) will show in the Property List widget. <br>
+<br>
+
+Metrics about I/O commands done by the VM to its virtual disks.<br>
+<br>
+
+Three types (each for Reads only, Writes only, or both): <br>
+  1) <b>Latency</b>: average ms/command for commands to complete.<br>
+  2) <b>Commands per Second</b>, or <b>Read|Write Requests</b>: # I/Os per second<br>
+  3) <b>Usage</b> or <b>Read|Write Rate(KBps)</b>: KB per second.<br>
+<br>
+
+Total Latency, Commands per Second, and Usage are metrics for all IOs (both reads and writes). Others consider only Reads or only Writes.<br>
+<br>
+
+Higher latency values are worse.<br>
+<br>
+
+Other metrics to consider: <br>
+similar metrics (especially latency) per vDisk ([vm]Virtual Disk|scsi0:0, scsi0:1...)<br>
+
+</font>
+</HTML>
